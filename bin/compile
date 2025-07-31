@@ -50,7 +50,7 @@ fi
 
 # Calculate checksum using the existing script
 echo "-----> Calculating web directory checksum"
-WEB_CHECKSUM=$(bash ./bin/sha-files | tee /dev/tty | tail -n 1)
+WEB_CHECKSUM=$(bash ./bin/sha-files | tail -n 1)
 echo "-----> Current checksum: $WEB_CHECKSUM" | indent
 
 # Check if this build already exists in cache
