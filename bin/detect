@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "FE build"
+exit 0

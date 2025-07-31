@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir> <env-dir>
+
+set -eo pipefail
+
+BUILD_DIR=$1
+CACHE_DIR=$2
+ENV_DIR=$3
+
+indent() {
+  sed -u 's/^/       /'
+}
+
+# Function to build env string for npm run build
+build_web_env_string() {
+  local env_string=""
+  if [ -d "$ENV_DIR" ]; then
+    for e in $(ls $ENV_DIR); do
+      if [[ $e == WEB_* ]]; then
+        # Get the value
+        local value=$(cat "$ENV_DIR/$e")
+        # Remove WEB_ prefix
+        local var_name=${e#WEB_}
+        # Add to env string
+        env_string="$env_string $var_name='$value'"
+        echo "-----> Setting $var_name for build" | indent
+      fi
+    done
+  fi
+  echo "$env_string"
+}
+
+echo "-----> Frontend Buildpack: Starting build process"
+
+cd $BUILD_DIR
+
+# Check if web directory exists
+if [ ! -d "web" ]; then
+  echo "-----> No web directory found, skipping frontend build"
+  exit 0
+fi
+
+cd web
+
+# Check if sha-files script exists
+if [ ! -f "./bin/sha-files" ]; then
+  echo "-----> ERROR: ./web/bin/sha-files script not found"
+  exit 1
+fi
+
+# Calculate checksum using the existing script
+echo "-----> Calculating web directory checksum"
+WEB_CHECKSUM=$(bash ./bin/sha-files | tee /dev/tty | tail -n 1)
+echo "-----> Current checksum: $WEB_CHECKSUM" | indent
+
+# Check if this build already exists in cache
+CACHED_BUILD_DIR="$CACHE_DIR/web-builds/$WEB_CHECKSUM"
+
+if [ -d "$CACHED_BUILD_DIR" ] && [ -d "$CACHED_BUILD_DIR/build" ]; then
+  echo "-----> Build found in cache, using cached version"
+  echo "-----> Cached build exists, skipping rebuild"
+
+  # Remove web directory
+  cd $BUILD_DIR
+  rm -rf web
+
+  echo "-----> Frontend build complete (from cache)"
+  exit 0
+fi
+
+echo "-----> No cached build found, proceeding with fresh build"
+
+# Ensure Node.js is available (assuming another buildpack provides it)
+if ! command -v node &> /dev/null; then
+  echo "-----> ERROR: Node.js not found. Ensure Node.js buildpack runs before this one."
+  exit 1
+fi
+
+# Install dependencies
+echo "-----> Installing npm dependencies"
+npm ci --production=false 2>&1 | indent
+
+# Build environment variables string
+echo "-----> Preparing WEB_ environment variables for build"
+WEB_ENV_STRING=$(build_web_env_string)
+
+# Build the frontend
+echo "-----> Building frontend application"
+env $WEB_ENV_STRING npm run build 2>&1 | indent
+
+# Cache the build
+echo "-----> Caching build for future deployments"
+mkdir -p "$CACHED_BUILD_DIR"
+cp -r build "$CACHED_BUILD_DIR/"
+
+# Clean up - remove the entire web directory
+echo "-----> Cleaning up web directory"
+cd $BUILD_DIR
+rm -rf web
+
+echo "-----> Frontend build complete"
