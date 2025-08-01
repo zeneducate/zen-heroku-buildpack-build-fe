@@ -57,7 +57,7 @@ echo "-----> Current checksum: $WEB_CHECKSUM" | indent
 # Check if this build already exists in cache
 CACHED_BUILD_DIR="$CACHE_DIR/web-builds/$WEB_CHECKSUM"
 
-if [ -d "$CACHED_BUILD_DIR" ] && [ -d "$CACHED_BUILD_DIR/build" ]; then
+if [ -d "$CACHED_BUILD_DIR" ] && [ -d "$CACHED_BUILD_DIR/dist" ]; then
   echo "-----> Build found in cache, using cached version"
   echo "-----> Cached build exists, skipping rebuild"
 
