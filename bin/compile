@@ -121,6 +121,6 @@ cp -r dist "$CACHED_BUILD_DIR/"
 # Clean up most of web to keep the slug small
 echo "-----> Keeping slug small"
 cd ..
-find web -mindepth 1 ! -path "web/dist*" ! -path "web/bin*" ! -path "web/public*" -exec rm -rf {} +
+find web/* -mindepth 0 ! -path "web/dist*" ! -path "web/bin*" ! -path "web/public*" -exec rm -rf {} +
 
 echo "-----> Frontend build complete"
