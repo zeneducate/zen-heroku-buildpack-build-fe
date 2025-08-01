@@ -84,9 +84,13 @@ npm ci --production=false 2>&1 | indent
 echo "-----> Preparing WEB_ environment variables for build"
 WEB_ENV_STRING=$(build_web_env_string)
 
+# Increase Node.js memory limit for the build
+export NODE_OPTIONS="--max-old-space-size=2048"
+echo "-----> Setting NODE_OPTIONS=$NODE_OPTIONS" | indent
+
 # Build the frontend
 echo "-----> Building frontend application"
-env $WEB_ENV_STRING npm run build 2>&1 | indent
+env $WEB_ENV_STRING NODE_OPTIONS="$NODE_OPTIONS" npm run build 2>&1 | indent
 
 # Cache the build
 echo "-----> Caching build for future deployments"
