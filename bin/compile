@@ -93,12 +93,11 @@ if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
   cp -R "$NPM_CACHE_DIR/node_modules" ./node_modules
 else
   echo "-----> No cache found, installing dependencies" | indent
-fi
-
-# Install dependencies if node_modules wasn't restored
-if [ ! -d "node_modules" ]; then
-  echo "-----> Installing npm dependencies"
   npm ci --production=false 2>&1 | indent
+
+  echo "-----> Caching node_modules" | indent
+  mkdir -p "$NPM_CACHE_DIR"
+  cp -R ./node_modules "$NPM_CACHE_DIR/"
 fi
 
 # Build environment variables string
