@@ -85,7 +85,7 @@ echo "-----> Preparing WEB_ environment variables for build"
 WEB_ENV_STRING=$(build_web_env_string)
 
 # Increase Node.js memory limit for the build
-export NODE_OPTIONS="--max-old-space-size=2048"
+export NODE_OPTIONS="--max-old-space-size=4096"
 echo "-----> Setting NODE_OPTIONS=$NODE_OPTIONS" | indent
 
 # Build the frontend
