@@ -86,6 +86,7 @@ fi
 echo "-----> Checking for cached node_modules"
 
 NPM_CACHE_CHECKSUM=$(sha256sum package-lock.json | awk '{print $1}')
+echo "-----> Node modules checksum: $NPM_CACHE_CHECKSUM" | indent
 NPM_CACHE_DIR="$CACHE_DIR/npm-cache/$NPM_CACHE_CHECKSUM"
 
 if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
