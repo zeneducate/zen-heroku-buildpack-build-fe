@@ -23,7 +23,8 @@ build_web_env_string() {
         local var_name=${e#WEB_}
         # Add to env string
         env_string="$env_string $var_name='$value'"
-        echo "-----> Setting $var_name for build" | indent
+        # Print debug info to stderr so it doesn't get captured
+        echo "-----> Setting $var_name for build" | indent >&2
       fi
     done
   fi
