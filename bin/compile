@@ -61,9 +61,8 @@ if [ -d "$CACHED_BUILD_DIR" ] && [ -d "$CACHED_BUILD_DIR/dist" ]; then
   echo "-----> Build found in cache, using cached version"
   echo "-----> Cached build exists, skipping rebuild"
 
-  # Remove web directory
-  cd $BUILD_DIR
-  rm -rf web
+  # Copy dist back into web/
+  cp -r "$CACHED_BUILD_DIR/dist" "$BUILD_DIR/web/"
 
   echo "-----> Frontend build complete (from cache)"
   exit 0
