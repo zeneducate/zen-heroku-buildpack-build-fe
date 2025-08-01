@@ -96,7 +96,7 @@ env $WEB_ENV_STRING NODE_OPTIONS="$NODE_OPTIONS" npm run build 2>&1 | indent
 # Cache the build
 echo "-----> Caching build for future deployments"
 mkdir -p "$CACHED_BUILD_DIR"
-cp -r build "$CACHED_BUILD_DIR/"
+cp -r dist "$CACHED_BUILD_DIR/"
 
 # Clean up - remove the entire web directory
 echo "-----> Cleaning up web directory"
