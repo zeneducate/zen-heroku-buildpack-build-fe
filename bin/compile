@@ -10,7 +10,7 @@ ENV_DIR=$3
 bash --version
 
 echo() {
-  command echo "-----> $(date) $@"
+  builtin echo "-----> [$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
 indent() {
