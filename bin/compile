@@ -11,6 +11,7 @@ indent() {
   sed -u 's/^/       /'
 }
 
+# Log function with optional indentation
 log() {
   # If the first argument is a number, treat it as an indent level
   local indent_level=0
@@ -29,6 +30,22 @@ log() {
   fi
 
   echo "${prefix} ${msg}"
+}
+
+# Runs a command and logs its output with optional indentation
+run() {
+  # If the first argument is a number, treat it as an indent level
+  local indent_level=0
+  if [[ "$1" =~ ^[0-9]+$ ]]; then
+    indent_level="$1"
+    shift # Remove the indent level from arguments
+  fi
+
+  log $indent_level "Running command: $*"
+  local cmd="$*"
+  eval "$cmd" 2>&1 | while IFS= read -r line; do
+    log $indent_level "$line"
+  done
 }
 
 # Skip frontend buildpack for review apps except zeneducate-pr-224
@@ -111,7 +128,7 @@ if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
   cp -R "$NPM_CACHE_DIR/node_modules" ./node_modules
 else
   log 1 "No cache found, installing dependencies"
-  npm ci --production=false 2>&1 | indent
+  run 1 "npm ci --production=false"
   log 1 "Caching node_modules"
   mkdir -p "$NPM_CACHE_DIR"
   cp -R ./node_modules "$NPM_CACHE_DIR/"
@@ -135,7 +152,7 @@ log 1 "Setting NODE_OPTIONS=--max-old-space-size=4096"
 log "Building frontend application"
 (
   source "$ENV_FILE"
-  npm run build 2>&1 | indent
+  run 1 "npm run build"
 )
 
 # Cache the build
