@@ -1,4 +1,35 @@
 #!/usr/bin/env bash
+# bin/detect <build-dir>
 
-echo "FE build"
+set -euo pipefail
+
+BUILD_DIR=$1
+
+if [ ! -f "$BUILD_DIR/package.json" ]; then
+  echo "package.json not found in build directory."
+  exit 1
+fi
+
+# Check if sha-files script exists
+if [ ! -f "$BUILD_DIR/bin/sha-files" ]; then
+  echo "-----> ERROR: bin/sha-files script not found"
+  exit 1
+fi
+
+if [ ! -d "$BUILD_DIR/api" ]; then
+  echo "api directory not found in build directory."
+  exit 1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js is not installed."
+  exit 1
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "npm is not installed."
+  exit 1
+fi
+
+echo "Build directory is a valid Node.js application with api as subdirectory."
 exit 0
