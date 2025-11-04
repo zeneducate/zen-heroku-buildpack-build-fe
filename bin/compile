@@ -129,6 +129,7 @@ if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
 else
   log 1 "No cache found, installing dependencies"
   run 1 "npm ci --production=false"
+  run 1 "npm cache verify"
   log 1 "Caching node_modules"
   mkdir -p "$NPM_CACHE_DIR"
   cp -R ./node_modules "$NPM_CACHE_DIR/"
