@@ -7,6 +7,10 @@ BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
 
+echo() {
+  command echo $(date) "$@"
+}
+
 # Skip frontend buildpack for review apps except zeneducate-pr-224
 if [ "$SERVER_NAME" = "review" ] && [ "$HEROKU_APP_NAME" != "zeneducate-pr-224" ]; then
   echo "-----> Skipping frontend build for review app: $HEROKU_APP_NAME"
