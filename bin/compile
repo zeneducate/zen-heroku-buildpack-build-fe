@@ -7,15 +7,35 @@ BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
 
+indent() { sed -u 's/^/       /'; }
+header() { echo "-----> $*"; }
+log()    { echo "       $*"; }
+
+# tree does not exist on Heroku by default, so we implement a simple version
+tree() {
+  find $1 |
+    grep -v 'node_modules' |
+    sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+}
+
+inspect_dir() {
+  local dir_to_inspect="$1"
+
+  header "Inspecting directory: $dir_to_inspect"
+  if [ -d "$dir_to_inspect" ]; then
+    log "$dir_to_inspect exists"
+
+    tree "$dir_to_inspect" | indent
+  else
+    log "$dir_to_inspect does not exist"
+  fi
+}
+
 # Skip frontend buildpack for review apps except zeneducate-pr-224
 if [ "$SERVER_NAME" = "review" ] && [ "$HEROKU_APP_NAME" != "zeneducate-pr-224" ]; then
-  echo "-----> Skipping frontend build for review app: $HEROKU_APP_NAME"
+  header "Skipping frontend build for review app: $HEROKU_APP_NAME"
   exit 0
 fi
-
-indent() {
-  sed -u 's/^/       /'
-}
 
 # Function to write env vars to a temporary file for sourcing
 write_env_file() {
@@ -30,19 +50,19 @@ write_env_file() {
         # Write export statement to file, properly escaping the value
         printf "export %s=%q\n" "$var_name" "$value" >> "$env_file"
         # Print debug info
-        echo "-----> Setting $var_name for build" | indent
+        log "Setting $var_name for build"
       fi
     done
   fi
 }
 
-echo "-----> Frontend Buildpack: Starting build process"
+header "Frontend Buildpack: Starting build process"
 
 cd $BUILD_DIR
 
 # Check if web directory exists
 if [ ! -d "web" ]; then
-  echo "-----> No web directory found, skipping frontend build"
+  header "ERROR: No web directory found, skipping frontend build"
   exit 0
 fi
 
@@ -50,55 +70,64 @@ cd web
 
 # Check if sha-files script exists
 if [ ! -f "./bin/sha-files" ]; then
-  echo "-----> ERROR: ./web/bin/sha-files script not found"
+  header "ERROR: ./web/bin/sha-files script not found"
   exit 1
 fi
 
 # Calculate checksum using the existing script
-echo "-----> Calculating web directory checksum"
+header "Calculating web directory checksum"
 WEB_CHECKSUM=$(bash ./bin/sha-files | tail -n 1)
-echo "-----> Current checksum: $WEB_CHECKSUM" | indent
+log "Current checksum: $WEB_CHECKSUM"
 
 # Check if this build already exists in cache
 CACHED_BUILD_DIR="$CACHE_DIR/web-builds/$WEB_CHECKSUM"
 
+# XXX: Temp logging
+inspect_dir "$CACHE_DIR/web-builds"
+
 if [ -d "$CACHED_BUILD_DIR" ] && [ -d "$CACHED_BUILD_DIR/dist" ]; then
-  echo "-----> Build found in cache, using cached version"
-  echo "-----> Cached build exists, skipping rebuild"
+  header "Build found in cache, using cached version"
+  log "Cached build exists, skipping rebuild"
   # Copy dist back into web/
   cp -r "$CACHED_BUILD_DIR/dist" "$BUILD_DIR/web/"
-  echo "-----> Frontend build complete (from cache)"
+  header "Frontend build complete (from cache)"
   exit 0
 fi
 
-echo "-----> No cached build found, proceeding with fresh build"
+header "No cached build found, proceeding with fresh build"
 
 # Ensure Node.js is available (assuming another buildpack provides it)
 if ! command -v node &> /dev/null; then
-  echo "-----> ERROR: Node.js not found. Ensure Node.js buildpack runs before this one."
+  header "ERROR: Node.js not found. Ensure Node.js buildpack runs before this one."
   exit 1
 fi
 
 # Cache npm dependencies by package-lock.json checksum
-echo "-----> Checking for cached node_modules"
+header "Checking for cached node_modules"
 NPM_CACHE_CHECKSUM=$(sha256sum package-lock.json | awk '{print $1}')
-echo "-----> Node modules checksum: $NPM_CACHE_CHECKSUM" | indent
+log "Node modules checksum: $NPM_CACHE_CHECKSUM"
+
+# XXX: Temp logging
+inspect_dir "$CACHE_DIR/npm-cache"
 
 NPM_CACHE_DIR="$CACHE_DIR/npm-cache/$NPM_CACHE_CHECKSUM"
 
 if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
-  echo "-----> Restoring cached node_modules" | indent
+  log "Restoring cached node_modules"
   cp -R "$NPM_CACHE_DIR/node_modules" ./node_modules
 else
-  echo "-----> No cache found, installing dependencies" | indent
+  log "No cache found, installing dependencies"
   npm ci --production=false 2>&1 | indent
-  echo "-----> Caching node_modules" | indent
+  log "Caching node_modules"
   mkdir -p "$NPM_CACHE_DIR"
   cp -R ./node_modules "$NPM_CACHE_DIR/"
 fi
 
+# XXX: Temp logging
+inspect_dir "$CACHE_DIR/npm-cache"
+
 # Prepare WEB_ environment variables for build
-echo "-----> Preparing WEB_ environment variables for build"
+header "Preparing WEB_ environment variables for build"
 
 # Create a temporary file for environment variables
 ENV_FILE=$(mktemp)
@@ -109,22 +138,25 @@ write_env_file "$ENV_FILE"
 
 # Increase Node.js memory limit for the build
 echo "export NODE_OPTIONS='--max-old-space-size=4096'" >> "$ENV_FILE"
-echo "-----> Setting NODE_OPTIONS=--max-old-space-size=4096" | indent
+log "Setting NODE_OPTIONS=--max-old-space-size=4096"
 
 # Build the frontend in a subshell with the isolated environment
-echo "-----> Building frontend application"
+header "Building frontend application"
 (
   source "$ENV_FILE"
   npm run build 2>&1 | indent
 )
 
 # Cache the build
-echo "-----> Caching build for future deployments"
+header "Caching build for future deployments"
 mkdir -p "$CACHED_BUILD_DIR"
 cp -r dist "$CACHED_BUILD_DIR/"
 
+# XXX: Temp logging
+inspect_dir "$CACHE_DIR/web-builds"
+
 # Clean up most of web to keep the slug small
-echo "-----> Keeping slug small"
+header "Keeping slug small"
 for item in *; do
   case "$item" in
     dist|bin|public)
@@ -136,4 +168,4 @@ for item in *; do
   esac
 done
 
-echo "-----> Frontend build complete"
+header "Frontend build complete"
