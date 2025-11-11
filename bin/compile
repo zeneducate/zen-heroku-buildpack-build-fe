@@ -102,29 +102,29 @@ if ! command -v node &> /dev/null; then
   exit 1
 fi
 
-# Cache npm dependencies by package-lock.json checksum
+# Cache pnpm dependencies by pnpm-lock.yaml checksum
 header "Checking for cached node_modules"
-NPM_CACHE_CHECKSUM=$(sha256sum package-lock.json | awk '{print $1}')
+NPM_CACHE_CHECKSUM=$(sha256sum pnpm-lock.yaml | awk '{print $1}')
 log "Node modules checksum: $NPM_CACHE_CHECKSUM"
 
 # XXX: Temp logging
-inspect_dir "$CACHE_DIR/npm-cache"
+inspect_dir "$CACHE_DIR/pnpm-cache"
 
-NPM_CACHE_DIR="$CACHE_DIR/npm-cache/$NPM_CACHE_CHECKSUM"
+NPM_CACHE_DIR="$CACHE_DIR/pnpm-cache/$NPM_CACHE_CHECKSUM"
 
 if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
   log "Restoring cached node_modules"
   cp -R "$NPM_CACHE_DIR/node_modules" ./node_modules
 else
   log "No cache found, installing dependencies"
-  npm ci --production=false 2>&1 | indent
+  pnpm install --frozen-lockfile --prod=false 2>&1 | indent
   log "Caching node_modules"
   mkdir -p "$NPM_CACHE_DIR"
   cp -R ./node_modules "$NPM_CACHE_DIR/"
 fi
 
 # XXX: Temp logging
-inspect_dir "$CACHE_DIR/npm-cache"
+inspect_dir "$CACHE_DIR/pnpm-cache"
 
 # Prepare WEB_ environment variables for build
 header "Preparing WEB_ environment variables for build"
@@ -144,7 +144,7 @@ log "Setting NODE_OPTIONS=--max-old-space-size=4096"
 header "Building frontend application"
 (
   source "$ENV_FILE"
-  npm run build 2>&1 | indent
+  pnpm run build 2>&1 | indent
 )
 
 # Cache the build
