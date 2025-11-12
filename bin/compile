@@ -11,21 +11,13 @@ indent() { sed -u 's/^/       /'; }
 header() { echo "-----> $*"; }
 log()    { echo "       $*"; }
 
-# tree does not exist on Heroku by default, so we implement a simple version
-tree() {
-  find $1 |
-    grep -v 'node_modules' |
-    sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
-}
-
 inspect_dir() {
   local dir_to_inspect="$1"
 
   header "Inspecting directory: $dir_to_inspect"
   if [ -d "$dir_to_inspect" ]; then
     log "$dir_to_inspect exists"
-
-    tree "$dir_to_inspect" | indent
+    du -ah --max-depth=1 "$dir_to_inspect" | indent
   else
     log "$dir_to_inspect does not exist"
   fi
@@ -73,6 +65,9 @@ if [ ! -f "./bin/sha-files" ]; then
   header "ERROR: ./web/bin/sha-files script not found"
   exit 1
 fi
+
+# XXX: Temp logging
+inspect_dir "$CACHE_DIR"
 
 # Calculate checksum using the existing script
 header "Calculating web directory checksum"
@@ -154,6 +149,9 @@ cp -r dist "$CACHED_BUILD_DIR/"
 
 # XXX: Temp logging
 inspect_dir "$CACHE_DIR/web-builds"
+
+# XXX: Temp logging
+inspect_dir "$CACHE_DIR"
 
 # Clean up most of web to keep the slug small
 header "Keeping slug small"
