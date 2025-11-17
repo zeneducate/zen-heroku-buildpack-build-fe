@@ -66,9 +66,6 @@ if [ ! -f "./bin/sha-files" ]; then
   exit 1
 fi
 
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR"
-
 # Calculate checksum using the existing script
 header "Calculating web directory checksum"
 WEB_CHECKSUM=$(bash ./bin/sha-files | tail -n 1)
@@ -76,9 +73,6 @@ log "Current checksum: $WEB_CHECKSUM"
 
 # Check if this build already exists in cache
 CACHED_BUILD_DIR="$CACHE_DIR/web-builds/$WEB_CHECKSUM"
-
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/web-builds"
 
 if [ -d "$CACHED_BUILD_DIR" ] && [ -d "$CACHED_BUILD_DIR/dist" ]; then
   header "Build found in cache, using cached version"
@@ -102,9 +96,6 @@ header "Checking for cached node_modules"
 NPM_CACHE_CHECKSUM=$(sha256sum package-lock.json | awk '{print $1}')
 log "Node modules checksum: $NPM_CACHE_CHECKSUM"
 
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/npm-cache"
-
 NPM_CACHE_DIR="$CACHE_DIR/npm-cache/$NPM_CACHE_CHECKSUM"
 
 if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
@@ -117,9 +108,6 @@ else
   mkdir -p "$NPM_CACHE_DIR"
   cp -R ./node_modules "$NPM_CACHE_DIR/"
 fi
-
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/npm-cache"
 
 # Prepare WEB_ environment variables for build
 header "Preparing WEB_ environment variables for build"
@@ -146,12 +134,6 @@ header "Building frontend application"
 header "Caching build for future deployments"
 mkdir -p "$CACHED_BUILD_DIR"
 cp -r dist "$CACHED_BUILD_DIR/"
-
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/web-builds"
-
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR"
 
 # Clean up most of web to keep the slug small
 header "Keeping slug small"
