@@ -23,6 +23,22 @@ inspect_dir() {
   fi
 }
 
+check_cache_dir_size() {
+  # Heroku's CACHE_DIR size limit is 5 GB. If exceeded, this cache fails to
+  # upload SILENTLY, causing subsequent builds to slow down significantly.
+  local cache_dir_max_size_bytes=$((5 * 1024 * 1024 * 1024)) # 5 GB 
+  local cache_dir_size_bytes=$(du -sb "$CACHE_DIR" | awk '{print $1}')
+
+  if (( cache_dir_size_bytes > cache_dir_max_size_bytes )); then
+    header "WARNING: Cache directory size exceeds limit!"
+    log "Run \`heroku builds:cache:purge -a <app-name>\` to clear the cache."
+  else
+    header "Cache directory size is within limits"
+  fi
+  log "Cache directory size: $cache_dir_size_bytes bytes"
+  log "Maximum allowed size: $cache_dir_max_size_bytes bytes"
+}
+
 # Skip frontend buildpack for review apps except zeneducate-pr-224
 if [ "$SERVER_NAME" = "review" ] && [ "$HEROKU_APP_NAME" != "zeneducate-pr-224" ]; then
   header "Skipping frontend build for review app: $HEROKU_APP_NAME"
@@ -66,9 +82,6 @@ if [ ! -f "./bin/sha-files" ]; then
   exit 1
 fi
 
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR"
-
 # Calculate checksum using the existing script
 header "Calculating web directory checksum"
 WEB_CHECKSUM=$(bash ./bin/sha-files | tail -n 1)
@@ -76,9 +89,6 @@ log "Current checksum: $WEB_CHECKSUM"
 
 # Check if this build already exists in cache
 CACHED_BUILD_DIR="$CACHE_DIR/web-builds/$WEB_CHECKSUM"
-
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/web-builds"
 
 if [ -d "$CACHED_BUILD_DIR" ] && [ -d "$CACHED_BUILD_DIR/dist" ]; then
   header "Build found in cache, using cached version"
@@ -102,9 +112,6 @@ header "Checking for cached node_modules"
 NPM_CACHE_CHECKSUM=$(sha256sum package-lock.json | awk '{print $1}')
 log "Node modules checksum: $NPM_CACHE_CHECKSUM"
 
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/npm-cache"
-
 NPM_CACHE_DIR="$CACHE_DIR/npm-cache/$NPM_CACHE_CHECKSUM"
 
 if [ -d "$NPM_CACHE_DIR/node_modules" ]; then
@@ -117,9 +124,6 @@ else
   mkdir -p "$NPM_CACHE_DIR"
   cp -R ./node_modules "$NPM_CACHE_DIR/"
 fi
-
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/npm-cache"
 
 # Prepare WEB_ environment variables for build
 header "Preparing WEB_ environment variables for build"
@@ -147,12 +151,6 @@ header "Caching build for future deployments"
 mkdir -p "$CACHED_BUILD_DIR"
 cp -r dist "$CACHED_BUILD_DIR/"
 
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR/web-builds"
-
-# XXX: Temp logging
-inspect_dir "$CACHE_DIR"
-
 # Clean up most of web to keep the slug small
 header "Keeping slug small"
 for item in *; do
@@ -165,5 +163,7 @@ for item in *; do
       ;;
   esac
 done
+
+check_cache_dir_size
 
 header "Frontend build complete"
