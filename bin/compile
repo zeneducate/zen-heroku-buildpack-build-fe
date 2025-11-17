@@ -23,6 +23,22 @@ inspect_dir() {
   fi
 }
 
+check_cache_dir_size() {
+  # Heroku's CACHE_DIR size limit is 5 GB. If exceeded, this cache fails to
+  # upload SILENTLY, causing subsequent builds to slow down significantly.
+  local cache_dir_max_size_bytes=$((5 * 1024 * 1024 * 1024)) # 5 GB 
+  local cache_dir_size_bytes=$(du -sb "$CACHE_DIR" | awk '{print $1}')
+
+  if (( cache_dir_size_bytes > cache_dir_max_size_bytes )); then
+    header "WARNING: Cache directory size exceeds limit!"
+    log "Run \`heroku builds:cache:purge -a <app-name>\` to clear the cache."
+  else
+    header "Cache directory size is within limits"
+  fi
+  log "Cache directory size: $cache_dir_size_bytes bytes"
+  log "Maximum allowed size: $cache_dir_max_size_bytes bytes"
+}
+
 # Skip frontend buildpack for review apps except zeneducate-pr-224
 if [ "$SERVER_NAME" = "review" ] && [ "$HEROKU_APP_NAME" != "zeneducate-pr-224" ]; then
   header "Skipping frontend build for review app: $HEROKU_APP_NAME"
@@ -147,5 +163,7 @@ for item in *; do
       ;;
   esac
 done
+
+check_cache_dir_size
 
 header "Frontend build complete"
