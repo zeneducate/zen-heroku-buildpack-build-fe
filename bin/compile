@@ -136,8 +136,8 @@ trap "rm -f $ENV_FILE" EXIT
 write_env_file "$ENV_FILE"
 
 # Increase Node.js memory limit for the build
-echo "export NODE_OPTIONS='--max-old-space-size=4096'" >> "$ENV_FILE"
-log "Setting NODE_OPTIONS=--max-old-space-size=4096"
+echo "export NODE_OPTIONS='--max-old-space-size=8192'" >> "$ENV_FILE"
+log "Setting NODE_OPTIONS=--max-old-space-size=8192"
 
 # Build the frontend in a subshell with the isolated environment
 header "Building frontend application"
