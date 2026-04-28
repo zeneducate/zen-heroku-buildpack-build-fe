@@ -66,7 +66,7 @@ write_env_file() {
 
 header "Frontend Buildpack: Starting build process"
 
-cd $BUILD_DIR
+mv -R ../web ./
 
 # Check if web directory exists
 if [ ! -d "web" ]; then
