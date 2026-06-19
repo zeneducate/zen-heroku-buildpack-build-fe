@@ -107,6 +107,19 @@ if ! command -v node &> /dev/null; then
   exit 1
 fi
 
+# Prepare WEB_ environment variables (needed for npm ci registry auth and npm run build)
+header "Preparing WEB_ environment variables"
+
+# Create a temporary file for environment variables
+ENV_FILE=$(mktemp)
+trap "rm -f $ENV_FILE" EXIT
+
+# Write all WEB_ variables to the temp file
+write_env_file "$ENV_FILE"
+
+# Source into current shell so npm ci can use them (e.g. FONTAWESOME_PACKAGE_TOKEN)
+source "$ENV_FILE"
+
 # Cache npm dependencies by package-lock.json checksum
 header "Checking for cached node_modules"
 NPM_CACHE_CHECKSUM=$(sha256sum package-lock.json | awk '{print $1}')
@@ -124,16 +137,6 @@ else
   mkdir -p "$NPM_CACHE_DIR"
   cp -R ./node_modules "$NPM_CACHE_DIR/"
 fi
-
-# Prepare WEB_ environment variables for build
-header "Preparing WEB_ environment variables for build"
-
-# Create a temporary file for environment variables
-ENV_FILE=$(mktemp)
-trap "rm -f $ENV_FILE" EXIT
-
-# Write all WEB_ variables to the temp file
-write_env_file "$ENV_FILE"
 
 # Increase Node.js memory limit for the build
 echo "export NODE_OPTIONS='--max-old-space-size=8192'" >> "$ENV_FILE"
